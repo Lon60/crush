@@ -77,4 +77,4 @@ changelog:
       - Merge remote-tracking branch
 
 release:
-  prerelease: auto
+  prerelease: "false"
