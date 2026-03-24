@@ -1,0 +1,87 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# Simplified GoReleaser config for fork releases (GoReleaser OSS - no Pro features).
+version: 2
+
+project_name: crush
+
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
+snapshot:
+  version_template: "0.0.0-{{ .Timestamp }}"
+
+before:
+  hooks:
+    - go mod tidy
+    - rm -rf completions
+    - mkdir completions
+    - rm -rf manpages
+    - mkdir manpages
+    - sh -c 'go run . completion bash >./completions/crush.bash'
+    - sh -c 'go run . completion zsh >./completions/crush.zsh'
+    - sh -c 'go run . completion fish >./completions/crush.fish'
+    - sh -c 'go run . man | gzip -c >./manpages/crush.1.gz'
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+      - GOEXPERIMENT=greenteagc
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/charmbracelet/crush/internal/version.Version={{.Version}}
+    flags:
+      - -trimpath
+
+archives:
+  - name_template: >-
+      crush_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    wrap_in_directory: true
+    files:
+      - README*
+      - LICENSE*
+      - manpages/*
+      - completions/*
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+nfpms:
+  - formats:
+      - deb
+      - rpm
+    file_name_template: "{{ .ConventionalFileName }}"
+    contents:
+      - src: ./completions/crush.bash
+        dst: /etc/bash_completion.d/crush
+      - src: ./completions/crush.fish
+        dst: /usr/share/fish/vendor_completions.d/crush.fish
+      - src: ./completions/crush.zsh
+        dst: /usr/share/zsh/site-functions/_crush
+      - src: ./manpages/crush.1.gz
+        dst: /usr/share/man/man1/crush.1.gz
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^(build|ci): "
+      - Merge branch
+      - Merge pull request
+      - Merge remote-tracking branch
+
+release:
+  prerelease: auto
