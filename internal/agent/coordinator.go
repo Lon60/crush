@@ -595,10 +595,14 @@ func (c *coordinator) buildAgentModels(ctx context.Context, isSubAgent bool) (Mo
 		}, nil
 }
 
-func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map[string]string, providerID string) (fantasy.Provider, error) {
+func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map[string]string, providerID string, isOAuth bool) (fantasy.Provider, error) {
 	var opts []anthropic.Option
 
 	switch {
+	case isOAuth:
+		// NOTE: Prevent the SDK from picking up the API key from env.
+		os.Setenv("ANTHROPIC_API_KEY", "")
+		headers["Authorization"] = fmt.Sprintf("Bearer %s", apiKey)
 	case strings.HasPrefix(apiKey, "Bearer "):
 		// NOTE: Prevent the SDK from picking up the API key from env.
 		os.Setenv("ANTHROPIC_API_KEY", "")
@@ -820,7 +824,7 @@ func (c *coordinator) buildProvider(providerCfg config.ProviderConfig, model con
 	case openai.Name:
 		return c.buildOpenaiProvider(baseURL, apiKey, headers)
 	case anthropic.Name:
-		return c.buildAnthropicProvider(baseURL, apiKey, headers, providerCfg.ID)
+		return c.buildAnthropicProvider(baseURL, apiKey, headers, providerCfg.ID, providerCfg.OAuthToken != nil)
 	case openrouter.Name:
 		return c.buildOpenrouterProvider(baseURL, apiKey, headers)
 	case vercel.Name:

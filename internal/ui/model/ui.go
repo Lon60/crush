@@ -1414,11 +1414,15 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 
 		var (
 			providerID   = msg.Model.Provider
+			isAnthropic  = providerID == string(catwalk.InferenceProviderAnthropic)
 			isCopilot    = providerID == string(catwalk.InferenceProviderCopilot)
 			isConfigured = func() bool { _, ok := cfg.Providers.Get(providerID); return ok }
 		)
 
-		// Attempt to import GitHub Copilot tokens from VSCode if available.
+		// Attempt to import existing credentials from disk if available.
+		if isAnthropic && !isConfigured() && !msg.ReAuthenticate {
+			m.com.Store().ImportClaudeCode()
+		}
 		if isCopilot && !isConfigured() && !msg.ReAuthenticate {
 			m.com.Store().ImportCopilot()
 		}
@@ -1577,6 +1581,8 @@ func (m *UI) openAuthenticationDialog(provider catwalk.Provider, model config.Se
 	switch provider.ID {
 	case "hyper":
 		dlg, cmd = dialog.NewOAuthHyper(m.com, isOnboarding, provider, model, modelType)
+	case catwalk.InferenceProviderAnthropic:
+		dlg, cmd = dialog.NewOAuthClaude(m.com, isOnboarding, provider, model, modelType)
 	case catwalk.InferenceProviderCopilot:
 		dlg, cmd = dialog.NewOAuthCopilot(m.com, isOnboarding, provider, model, modelType)
 	default:

@@ -24,16 +24,21 @@ var loginCmd = &cobra.Command{
 	Short:   "Login Crush to a platform",
 	Long: `Login Crush to a specified platform.
 The platform should be provided as an argument.
-Available platforms are: hyper, copilot.`,
+Available platforms are: hyper, claude, copilot.`,
 	Example: `
 # Authenticate with Charm Hyper
 crush login
+
+# Authenticate with Claude Code Max
+crush login claude
 
 # Authenticate with GitHub Copilot
 crush login copilot
   `,
 	ValidArgs: []cobra.Completion{
 		"hyper",
+		"claude",
+		"anthropic",
 		"copilot",
 		"github",
 		"github-copilot",
@@ -53,6 +58,8 @@ crush login copilot
 		switch provider {
 		case "hyper":
 			return loginHyper(app.Store())
+		case "anthropic", "claude":
+			return loginClaude(app.Store())
 		case "copilot", "github", "github-copilot":
 			return loginCopilot(app.Store())
 		default:
@@ -120,6 +127,28 @@ func loginHyper(cfg *config.ConfigStore) error {
 
 	fmt.Println()
 	fmt.Println("You're now authenticated with Hyper!")
+	return nil
+}
+
+func loginClaude(cfg *config.ConfigStore) error {
+	if cfg.HasConfigField(config.ScopeGlobal, "providers.anthropic.oauth") {
+		fmt.Println("You are already logged in to Claude.")
+		return nil
+	}
+
+	token, ok := cfg.ImportClaudeCode()
+	if !ok || token == nil {
+		fmt.Println("Claude Code credentials not found.")
+		fmt.Println()
+		fmt.Println("Install Claude Code and authenticate first:")
+		fmt.Println()
+		fmt.Println(lipgloss.NewStyle().Bold(true).Render("  claude auth login"))
+		fmt.Println()
+		fmt.Println("Then run this command again.")
+		return fmt.Errorf("claude code credentials not found in ~/.claude/.credentials.json")
+	}
+
+	fmt.Println("You're now authenticated with Claude (imported from Claude Code)!")
 	return nil
 }
 

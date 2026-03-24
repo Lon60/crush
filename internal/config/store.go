@@ -12,6 +12,7 @@ import (
 	"charm.land/catwalk/pkg/catwalk"
 	hyperp "github.com/charmbracelet/crush/internal/agent/hyper"
 	"github.com/charmbracelet/crush/internal/oauth"
+	"github.com/charmbracelet/crush/internal/oauth/claude"
 	"github.com/charmbracelet/crush/internal/oauth/copilot"
 	"github.com/charmbracelet/crush/internal/oauth/hyper"
 	"github.com/tidwall/gjson"
@@ -183,6 +184,8 @@ func (s *ConfigStore) SetProviderAPIKey(scope Scope, providerID string, apiKey a
 			providerConfig.APIKey = v.AccessToken
 			providerConfig.OAuthToken = v
 			switch providerID {
+			case string(catwalk.InferenceProviderAnthropic):
+				providerConfig.SetupClaudeCode()
 			case string(catwalk.InferenceProviderCopilot):
 				providerConfig.SetupGitHubCopilot()
 			}
@@ -237,6 +240,12 @@ func (s *ConfigStore) RefreshOAuthToken(ctx context.Context, scope Scope, provid
 	var newToken *oauth.Token
 	var refreshErr error
 	switch providerID {
+	case string(catwalk.InferenceProviderAnthropic):
+		var ok bool
+		newToken, ok = claude.RefreshViaCLI()
+		if !ok {
+			refreshErr = fmt.Errorf("failed to refresh Claude token via CLI — run 'claude auth login'")
+		}
 	case string(catwalk.InferenceProviderCopilot):
 		newToken, refreshErr = copilot.RefreshToken(ctx, providerConfig.OAuthToken.RefreshToken)
 	case hyperp.Name:
@@ -253,6 +262,8 @@ func (s *ConfigStore) RefreshOAuthToken(ctx context.Context, scope Scope, provid
 	providerConfig.APIKey = newToken.AccessToken
 
 	switch providerID {
+	case string(catwalk.InferenceProviderAnthropic):
+		providerConfig.SetupClaudeCode()
 	case string(catwalk.InferenceProviderCopilot):
 		providerConfig.SetupGitHubCopilot()
 	}
@@ -341,5 +352,43 @@ func (s *ConfigStore) ImportCopilot() (*oauth.Token, bool) {
 	}
 
 	slog.Info("GitHub Copilot successfully imported")
+	return token, true
+}
+
+// ImportClaudeCode attempts to import Claude Code credentials from disk.
+func (s *ConfigStore) ImportClaudeCode() (*oauth.Token, bool) {
+	if s.HasConfigField(ScopeGlobal, "providers.anthropic.api_key") || s.HasConfigField(ScopeGlobal, "providers.anthropic.oauth") {
+		return nil, false
+	}
+
+	token, ok := claude.TokenFromDisk()
+	if !ok {
+		return nil, false
+	}
+
+	if token.IsExpired() {
+		slog.Info("Found expired Claude Code token on disk, refreshing via CLI...")
+		refreshed, ok := claude.RefreshViaCLI()
+		if !ok || refreshed.IsExpired() {
+			slog.Error("Unable to refresh Claude Code token via CLI")
+			return nil, false
+		}
+		token = refreshed
+	} else {
+		slog.Info("Found existing Claude Code token on disk, importing...")
+	}
+
+	if err := s.SetProviderAPIKey(ScopeGlobal, string(catwalk.InferenceProviderAnthropic), token); err != nil {
+		return token, false
+	}
+
+	if err := cmp.Or(
+		s.SetConfigField(ScopeGlobal, "providers.anthropic.api_key", token.AccessToken),
+		s.SetConfigField(ScopeGlobal, "providers.anthropic.oauth", token),
+	); err != nil {
+		slog.Error("Unable to save Claude Code token to disk", "error", err)
+	}
+
+	slog.Info("Claude Code successfully imported")
 	return token, true
 }

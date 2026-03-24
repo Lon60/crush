@@ -154,6 +154,39 @@ func (pc *ProviderConfig) ToProvider() catwalk.Provider {
 	return provider
 }
 
+func (pc *ProviderConfig) SetupClaudeCode() {
+	pc.SystemPromptPrefix = "You are Claude Code, Anthropic's official CLI for Claude."
+	pc.ExtraHeaders["anthropic-version"] = "2023-06-01"
+	pc.ExtraHeaders["x-app"] = "cli"
+
+	requiredBetas := []string{
+		"claude-code-20250219",
+		"oauth-2025-04-20",
+		"interleaved-thinking-2025-05-14",
+		"prompt-caching-scope-2026-01-05",
+		"context-management-2025-06-27",
+	}
+
+	existing := pc.ExtraHeaders["anthropic-beta"]
+	seen := make(map[string]bool)
+	for _, b := range strings.Split(existing, ",") {
+		b = strings.TrimSpace(b)
+		if b != "" {
+			seen[b] = true
+		}
+	}
+	for _, b := range requiredBetas {
+		if !seen[b] {
+			if existing != "" {
+				existing += ","
+			}
+			existing += b
+			seen[b] = true
+		}
+	}
+	pc.ExtraHeaders["anthropic-beta"] = existing
+}
+
 func (pc *ProviderConfig) SetupGitHubCopilot() {
 	maps.Copy(pc.ExtraHeaders, copilot.Headers())
 }
