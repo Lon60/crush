@@ -41,16 +41,6 @@ func (i Info) IsDevelopment() bool {
 // If current is a pre-release and latest isn't, returns true.
 // If latest is a pre-release and current isn't, returns false.
 func (i Info) Available() bool {
-	cpr := strings.Contains(i.Current, "-")
-	lpr := strings.Contains(i.Latest, "-")
-	// current is pre release && latest isn't a prerelease
-	if cpr && !lpr {
-		return true
-	}
-	// latest is pre release && current isn't a prerelease
-	if lpr && !cpr {
-		return false
-	}
 	return i.Current != i.Latest
 }
 

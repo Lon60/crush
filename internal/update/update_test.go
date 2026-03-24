@@ -19,7 +19,7 @@ func TestCheckForUpdate_Beta(t *testing.T) {
 		info, err := Check(t.Context(), "v0.10.0", testClient{"v0.11.0-beta.1"})
 		require.NoError(t, err)
 		require.NotNil(t, info)
-		require.False(t, info.Available())
+		require.True(t, info.Available())
 	})
 
 	t.Run("current is also beta", func(t *testing.T) {
