@@ -3,32 +3,6 @@
   "$id": "https://github.com/charmbracelet/crush/internal/config/config",
   "$ref": "#/$defs/Config",
   "$defs": {
-    "Attribution": {
-      "properties": {
-        "trailer_style": {
-          "type": "string",
-          "enum": [
-            "none",
-            "co-authored-by",
-            "assisted-by"
-          ],
-          "description": "Style of attribution trailer to add to commits",
-          "default": "assisted-by"
-        },
-        "co_authored_by": {
-          "type": "boolean",
-          "description": "Deprecated: use trailer_style instead",
-          "deprecated": true
-        },
-        "generated_with": {
-          "type": "boolean",
-          "description": "Add Generated with Crush line to commit messages and issues and PRs",
-          "default": true
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
-    },
     "Completions": {
       "properties": {
         "max_depth": {
@@ -421,10 +395,6 @@
           "type": "boolean",
           "description": "Ignore all default/embedded providers. When enabled",
           "default": false
-        },
-        "attribution": {
-          "$ref": "#/$defs/Attribution",
-          "description": "Attribution settings for generated content"
         },
         "disable_metrics": {
           "type": "boolean",

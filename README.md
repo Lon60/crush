@@ -465,32 +465,6 @@ place the file in a specific directory (e.g., `CRUSH.md` or
 like build commands, code patterns, and conventions it discovered during
 initialization.
 
-### Attribution Settings
-
-By default, Crush adds attribution information to Git commits and pull requests
-it creates. You can customize this behavior with the `attribution` option:
-
-```json
-{
-  "$schema": "https://charm.land/crush.json",
-  "options": {
-    "attribution": {
-      "trailer_style": "co-authored-by",
-      "generated_with": true
-    }
-  }
-}
-```
-
-- `trailer_style`: Controls the attribution trailer added to commit messages
-  (default: `assisted-by`)
-	- `assisted-by`: Adds `Assisted-by: [Model Name] via Crush <crush@charm.land>`
-	  (includes the model name)
-	- `co-authored-by`: Adds `Co-Authored-By: Crush <crush@charm.land>`
-	- `none`: No attribution trailer
-- `generated_with`: When true (default), adds `💘 Generated with Crush` line to
-  commit messages and PR descriptions
-
 ### Custom Providers
 
 Crush supports custom provider configurations for both OpenAI-compatible and
